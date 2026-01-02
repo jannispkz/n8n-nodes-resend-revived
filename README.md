@@ -22,6 +22,7 @@ Transform your email workflows with comprehensive Resend integration for n8n. Se
 
 - **📤 Email Operations** - Send single emails, batch emails, schedule delivery
 - **📎 File Attachments** - Support for binary data and remote URL attachments
+- **🧩 Templates** - Create, update, list, delete, and send emails with templates
 - **👥 Contact Management** - Create, update, delete contacts and audiences
 - **🌐 Domain Management** - Verify domains, configure DNS settings
 - **🔑 API Key Management** - Create and manage API keys programmatically
@@ -202,6 +203,14 @@ Send up to 100 emails in a single API call for better performance.
 - **Get Broadcast** - Retrieve campaign details
 - **Send Broadcast** - Launch email campaigns
 - **Update Broadcast** - Modify campaign settings
+
+</details>
+
+<details>
+<summary>🧩 Template Management</summary>
+
+- **Create/Update Templates** - Manage reusable email templates
+- **Send with Template** - Send emails using template IDs and variables
 
 </details>
 
