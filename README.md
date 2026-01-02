@@ -20,13 +20,15 @@ Transform your email workflows with comprehensive Resend integration for n8n. Se
 
 ## 🎯 Features
 
-- **📤 Email Operations** - Send single emails, batch emails, schedule delivery
+- **📤 Email Operations** - Send single emails, batch emails, schedule delivery with tags and headers
 - **📎 File Attachments** - Support for binary data and remote URL attachments
 - **🧩 Templates** - Create, update, list, delete, and send emails with templates
-- **👥 Contact Management** - Create, update, delete contacts and audiences
+- **👥 Contact Management** - Create, update, delete contacts with segments and topics
+- **🧭 Segments** - Create and manage segments for broadcasts
+- **🏷️ Topics** - Manage subscription topics and preferences
 - **🌐 Domain Management** - Verify domains, configure DNS settings
 - **🔑 API Key Management** - Create and manage API keys programmatically
-- **📢 Broadcasts** - Send newsletter campaigns to audiences
+- **📢 Broadcasts** - Send newsletter campaigns to segments
 - **🎣 Webhook Support** - Receive real-time email events
 
 ---
@@ -137,6 +139,8 @@ Send individual emails with rich content and attachments.
 - ✅ File attachments (binary data or URLs)
 - ✅ CC/BCC recipients
 - ✅ Custom reply-to addresses
+- ✅ Custom headers and tags
+- ✅ Topic-based sending
 - ✅ Email scheduling
 
 **Example Use Cases:**
@@ -155,6 +159,7 @@ Send up to 100 emails in a single API call for better performance.
 - ⚠️ No attachment support (API limitation)
 
 #### Email Management
+- **List Emails** - List sent emails
 - **Retrieve Email** - Get email details and status
 - **Cancel Email** - Cancel scheduled emails
 - **Update Email** - Modify scheduled emails
@@ -162,20 +167,27 @@ Send up to 100 emails in a single API call for better performance.
 </details>
 
 <details>
-<summary>👥 Contact & Audience Management</summary>
+<summary>👥 Contact, Segment & Topic Management</summary>
 
 #### Contacts
-- **Create Contact** - Add new contacts to audiences
+- **Create Contact** - Add new contacts with segments and topics
 - **Get Contact** - Retrieve contact information
 - **Update Contact** - Modify contact details
-- **Delete Contact** - Remove contacts from audiences
-- **List Contacts** - Get all contacts in an audience
+- **Delete Contact** - Remove contacts
+- **List Contacts** - Get all contacts
 
-#### Audiences
-- **Create Audience** - Set up new email lists
-- **Get Audience** - Retrieve audience details
-- **List Audiences** - Get all your audiences
-- **Delete Audience** - Remove email lists
+#### Segments
+- **Create Segment** - Set up new segments
+- **Get Segment** - Retrieve segment details
+- **List Segments** - Get all your segments
+- **Delete Segment** - Remove segments
+
+#### Topics
+- **Create Topic** - Create subscription topics
+- **Get Topic** - Retrieve topic details
+- **List Topics** - Get all topics
+- **Update Topic** - Modify topic settings
+- **Delete Topic** - Remove topics
 
 </details>
 
@@ -271,7 +283,7 @@ Workflow:
   1. Cron Trigger (weekly)
   2. Database Node (fetch newsletter content)
   3. Resend Node (create broadcast)
-  4. Resend Node (send to audience)
+  4. Resend Node (send to segment)
 
 Benefits:
   - Automated scheduling
@@ -291,7 +303,7 @@ Trigger: Resend Trigger Node
   
 Actions:
   1. Database Node (log bounce)
-  2. Resend Node (remove from audience)
+  2. Resend Node (remove from segment)
   3. Slack Node (notify team)
 ```
 
