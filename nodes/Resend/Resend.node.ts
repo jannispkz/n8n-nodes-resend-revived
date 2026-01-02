@@ -48,7 +48,7 @@ export class Resend implements INodeType {
 					{
 						name: 'Contact',
 						value: 'contacts',
-						description: 'Manage audience contacts',
+						description: 'Manage contacts',
 					},
 					{
 						name: 'Domain',
@@ -1309,17 +1309,20 @@ export class Resend implements INodeType {
 			{
 				displayName: 'Segment ID',
 				name: 'segmentId',
-				type: 'string',
+				type: 'options',
 				required: true,
 				default: '',
 				placeholder: 'seg_123456',
+				typeOptions: {
+					loadOptionsMethod: 'getSegments',
+				},
 				displayOptions: {
 					show: {
 						resource: ['segments'],
 						operation: ['get', 'delete'],
 					},
 				},
-				description: 'The ID of the segment',
+				description: 'Select a segment or enter an ID using an expression',
 			},
 			{
 				displayName: 'List Options',
@@ -1428,17 +1431,20 @@ export class Resend implements INodeType {
 			{
 				displayName: 'Topic ID',
 				name: 'topicId',
-				type: 'string',
+				type: 'options',
 				required: true,
 				default: '',
 				placeholder: 'topic_123456',
+				typeOptions: {
+					loadOptionsMethod: 'getTopics',
+				},
 				displayOptions: {
 					show: {
 						resource: ['topics'],
 						operation: ['get', 'update', 'delete'],
 					},
 				},
-				description: 'The ID of the topic',
+				description: 'Select a topic or enter an ID using an expression',
 			},
 			{
 				displayName: 'Update Fields',
@@ -2133,7 +2139,7 @@ export class Resend implements INodeType {
 					{
 						name: 'List',
 						value: 'list',
-						description: 'List contacts in an audience',
+						description: 'List contacts',
 						action: 'List contacts',
 					},
 					{
@@ -2189,6 +2195,102 @@ export class Resend implements INodeType {
 
 					hasMore = Boolean(response?.has_more);
 					after = templates.length ? templates[templates.length - 1].id : undefined;
+					pageCount += 1;
+					if (!after || pageCount >= maxPages) {
+						break;
+					}
+				}
+
+				return returnData;
+			},
+			async getSegments(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('resendApi');
+				const apiKey = credentials.apiKey as string;
+				const returnData: INodePropertyOptions[] = [];
+				const limit = 100;
+				let after: string | undefined;
+				let hasMore = true;
+				let pageCount = 0;
+				const maxPages = 10;
+
+				while (hasMore) {
+					const qs: Record<string, string | number> = { limit };
+					if (after) {
+						qs.after = after;
+					}
+
+					const response = await this.helpers.httpRequest({
+						url: 'https://api.resend.com/segments',
+						method: 'GET',
+						headers: {
+							Authorization: `Bearer ${apiKey}`,
+						},
+						qs,
+						json: true,
+					});
+
+					const segments = response?.data ?? [];
+					for (const segment of segments) {
+						if (!segment?.id) {
+							continue;
+						}
+						const name = segment.name ? `${segment.name} (${segment.id})` : segment.id;
+						returnData.push({
+							name,
+							value: segment.id,
+						});
+					}
+
+					hasMore = Boolean(response?.has_more);
+					after = segments.length ? segments[segments.length - 1].id : undefined;
+					pageCount += 1;
+					if (!after || pageCount >= maxPages) {
+						break;
+					}
+				}
+
+				return returnData;
+			},
+			async getTopics(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const credentials = await this.getCredentials('resendApi');
+				const apiKey = credentials.apiKey as string;
+				const returnData: INodePropertyOptions[] = [];
+				const limit = 100;
+				let after: string | undefined;
+				let hasMore = true;
+				let pageCount = 0;
+				const maxPages = 10;
+
+				while (hasMore) {
+					const qs: Record<string, string | number> = { limit };
+					if (after) {
+						qs.after = after;
+					}
+
+					const response = await this.helpers.httpRequest({
+						url: 'https://api.resend.com/topics',
+						method: 'GET',
+						headers: {
+							Authorization: `Bearer ${apiKey}`,
+						},
+						qs,
+						json: true,
+					});
+
+					const topics = response?.data ?? [];
+					for (const topic of topics) {
+						if (!topic?.id) {
+							continue;
+						}
+						const name = topic.name ? `${topic.name} (${topic.id})` : topic.id;
+						returnData.push({
+							name,
+							value: topic.id,
+						});
+					}
+
+					hasMore = Boolean(response?.has_more);
+					after = topics.length ? topics[topics.length - 1].id : undefined;
 					pageCount += 1;
 					if (!after || pageCount >= maxPages) {
 						break;
