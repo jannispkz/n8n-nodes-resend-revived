@@ -7,6 +7,17 @@ import {
 	NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
+import { createHmac, timingSafeEqual } from 'crypto';
+
+const WEBHOOK_TOLERANCE_MS = 5 * 60 * 1000;
+
+function parseSvixTimestamp(timestamp: string): number | null {
+	const numeric = Number(timestamp);
+	if (!Number.isFinite(numeric)) {
+		return null;
+	}
+	return numeric > 1e12 ? numeric : numeric * 1000;
+}
 
 async function verifySvixSignature(
 	payload: string,
@@ -15,28 +26,21 @@ async function verifySvixSignature(
 	svixSignature: string,
 	webhookSigningSecret: string,
 ): Promise<void> {
+	const timestampMs = parseSvixTimestamp(svixTimestamp);
+	if (!timestampMs || Math.abs(Date.now() - timestampMs) > WEBHOOK_TOLERANCE_MS) {
+		throw new NodeOperationError({} as any, 'Webhook signature timestamp is outside the allowed tolerance');
+	}
+
 	// Remove the "whsec_" prefix from the secret
 	const secret = webhookSigningSecret.replace(/^whsec_/, '');
-
-	// Decode the base64 secret
-	const secretBytes = Uint8Array.from(atob(secret), c => c.charCodeAt(0));
+	const secretBytes = Buffer.from(secret, 'base64');
 
 	// Create the signed payload: "id.timestamp.payload"
 	const signedPayload = `${svixId}.${svixTimestamp}.${payload}`;
-	const payloadBytes = new TextEncoder().encode(signedPayload);
-
-	// Import the key for HMAC
-	const key = await globalThis.crypto.subtle.importKey(
-		'raw',
-		secretBytes,
-		{ name: 'HMAC', hash: 'SHA-256' },
-		false,
-		['sign']
-	);
-
-	// Create HMAC-SHA256 signature
-	const signatureBuffer = await globalThis.crypto.subtle.sign('HMAC', key, payloadBytes);
-	const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+	const expectedSignature = createHmac('sha256', secretBytes)
+		.update(signedPayload)
+		.digest('base64');
+	const expectedBytes = Buffer.from(expectedSignature, 'base64');
 
 	// Parse signatures from the header (format: "v1,signature1 v1,signature2")
 	const signatures = svixSignature.split(' ');
@@ -44,8 +48,8 @@ async function verifySvixSignature(
 	for (const sig of signatures) {
 		const [version, signature] = sig.split(',');
 		if (version === 'v1') {
-			// Use timing-safe comparison
-			if (signature === expectedSignature) {
+			const signatureBytes = Buffer.from(signature, 'base64');
+			if (signatureBytes.length === expectedBytes.length && timingSafeEqual(signatureBytes, expectedBytes)) {
 				return; // Signature is valid
 			}
 		}
@@ -130,13 +134,20 @@ export class ResendTrigger implements INodeType {
 		],
 	}; async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
 		const bodyData = this.getBodyData();
-		const headers = this.getHeaderData();		const subscribedEvents = this.getNodeParameter('events') as string[];
+		const headers = this.getHeaderData();
+		const request = this.getRequestObject();
+		const subscribedEvents = this.getNodeParameter('events') as string[];
 		const webhookSigningSecret = this.getNodeParameter('webhookSigningSecret') as string;
 		// Verify webhook signature if secret is provided
 		if (webhookSigningSecret && webhookSigningSecret.trim() !== '') {
 			try {
 				// Get the raw body for signature verification
-				const payload = JSON.stringify(bodyData);
+				const rawBody = (request as { rawBody?: unknown }).rawBody ?? (request as { body?: unknown }).body;
+				const payload = typeof rawBody === 'string'
+					? rawBody
+					: Buffer.isBuffer(rawBody)
+						? rawBody.toString('utf8')
+						: JSON.stringify(bodyData ?? {});
 
 				// Extract Svix headers with proper type handling
 				const svixId = (Array.isArray(headers['svix-id']) ? headers['svix-id'][0] : headers['svix-id']) ||
