@@ -533,71 +533,248 @@ export class Resend implements INodeType {
 						operation: ['sendBatch'],
 					},
 				},
-				description: 'Array of emails to send (max 100). Note: Attachments are not supported with batch emails.', options: [{
-					name: 'emails',
-					displayName: 'Email',
-					values: [
-						{
-							displayName: 'From',
-							name: 'from',
-							type: 'string',
-							required: true,
-							default: '',
-							placeholder: 'you@example.com',
-							description: 'Sender email address',
-						},
-						{
-							displayName: 'HTML Content',
-							name: 'html',
-							type: 'string',
-							default: '',
-							description: 'HTML content of the email',
-							placeholder: '<p>Your HTML content here</p>',
-							typeOptions: {
-								rows: 4
+				description: 'Array of emails to send (max 100). Note: Attachments are not supported with batch emails.',
+				options: [
+					{
+						name: 'emails',
+						displayName: 'Email',
+						values: [
+							{
+								displayName: 'BCC',
+								name: 'bcc',
+								type: 'string',
+								default: '',
+								description: 'BCC recipient email addresses (comma-separated)',
 							},
-						displayOptions: {
-							show: {
-								'/emailFormat': ['html', 'both'],
+							{
+								displayName: 'CC',
+								name: 'cc',
+								type: 'string',
+								default: '',
+								description: 'CC recipient email addresses (comma-separated)',
 							},
-						},
+							{
+								displayName: 'Content Type',
+								name: 'contentType',
+								type: 'options',
+								default: 'html',
+								options: [
+									{
+										name: 'HTML',
+										value: 'html',
+										description: 'Send email with HTML content',
+									},
+									{
+										name: 'HTML and Text',
+										value: 'both',
+										description: 'Send email with both HTML and text content',
+									},
+									{
+										name: 'Text',
+										value: 'text',
+										description: 'Send email with plain text content',
+									},
+									{
+										name: 'Template',
+										value: 'template',
+										description: 'Send email using a template',
+									},
+								],
+								description: 'Choose how to provide content for this email',
+							},
+							{
+								displayName: 'From',
+								name: 'from',
+								type: 'string',
+								required: true,
+								default: '',
+								placeholder: 'you@example.com',
+								description: 'Sender email address',
+							},
+							{
+								displayName: 'Headers',
+								name: 'headers',
+								type: 'fixedCollection',
+								default: { headers: [] },
+								typeOptions: {
+									multipleValues: true,
+								},
+								options: [
+									{
+										name: 'headers',
+										displayName: 'Header',
+										values: [
+											{
+												displayName: 'Name',
+												name: 'name',
+												type: 'string',
+												required: true,
+												default: '',
+											},
+											{
+												displayName: 'Value',
+												name: 'value',
+												type: 'string',
+												default: '',
+											},
+										],
+									},
+								],
+								description: 'Custom headers to add to the email',
+							},
+							{
+								displayName: 'HTML Content',
+								name: 'html',
+								type: 'string',
+								default: '',
+								description: 'HTML content of the email',
+								placeholder: '<p>Your HTML content here</p>',
+								typeOptions: {
+									rows: 4,
+								},
+								displayOptions: {
+									show: {
+										contentType: ['html', 'both'],
+									},
+								},
+							},
+							{
+								displayName: 'Reply To',
+								name: 'reply_to',
+								type: 'string',
+								default: '',
+								description: 'Reply-to email address. For multiple addresses, use comma-separated values.',
+							},
+							{
+								displayName: 'Subject',
+								name: 'subject',
+								type: 'string',
+								required: true,
+								default: '',
+								placeholder: 'Hello from n8n!',
+								description: 'Email subject',
+							},
+							{
+								displayName: 'Tags',
+								name: 'tags',
+								type: 'fixedCollection',
+								default: { tags: [] },
+								typeOptions: {
+									multipleValues: true,
+								},
+								options: [
+									{
+										name: 'tags',
+										displayName: 'Tag',
+										values: [
+											{
+												displayName: 'Name',
+												name: 'name',
+												type: 'string',
+												required: true,
+												default: '',
+											},
+											{
+												displayName: 'Value',
+												name: 'value',
+												type: 'string',
+												required: true,
+												default: '',
+											},
+										],
+									},
+								],
+								description: 'Tags to attach to the email',
+							},
+							{
+								displayName: 'Template Name or ID',
+								name: 'templateId',
+								type: 'options',
+								required: true,
+								default: '',
+								placeholder: '34a080c9-b17d-4187-ad80-5af20266e535',
+								typeOptions: {
+									loadOptionsMethod: 'getTemplates',
+								},
+								displayOptions: {
+									show: {
+										contentType: ['template'],
+									},
+								},
+								description: 'Select a template or enter an ID/alias using an expression. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+							},
+							{
+								displayName: 'Template Variables',
+								name: 'templateVariables',
+								type: 'fixedCollection',
+								default: { variables: [] },
+								typeOptions: {
+									multipleValues: true,
+								},
+								displayOptions: {
+									show: {
+										contentType: ['template'],
+									},
+								},
+								description: 'Variables to render the template with',
+								options: [
+									{
+										name: 'variables',
+										displayName: 'Variable',
+										values: [
+											{
+												displayName: 'Key',
+												name: 'key',
+												type: 'string',
+												required: true,
+												default: '',
+												description: 'Template variable name',
+											},
+											{
+												displayName: 'Value',
+												name: 'value',
+												type: 'string',
+												default: '',
+												description: 'Value for the template variable',
+											},
+										],
+									},
+								],
+							},
+							{
+								displayName: 'Text Content',
+								name: 'text',
+								type: 'string',
+								default: '',
+								description: 'Plain text content of the email',
+								typeOptions: {
+									rows: 4,
+								},
+								placeholder: 'Your plain text content here',
+								displayOptions: {
+									show: {
+										contentType: ['text', 'both'],
+									},
+								},
+							},
+							{
+								displayName: 'To',
+								name: 'to',
+								type: 'string',
+								required: true,
+								default: '',
+								placeholder: 'user@example.com',
+								description: 'Recipient email address (comma-separated for multiple)',
+							},
+							{
+								displayName: 'Topic ID',
+								name: 'topic_id',
+								type: 'string',
+								default: '',
+								description: 'Topic ID to scope the email to',
+							},
+						],
 					},
-						{
-							displayName: 'Subject',
-							name: 'subject',
-							type: 'string',
-							required: true,
-							default: '',
-							placeholder: 'Hello from n8n!',
-							description: 'Email subject',
-						},
-						{
-							displayName: 'Text Content',
-							name: 'text',
-							type: 'string',
-							default: '',
-							description: 'Plain text content of the email',
-							typeOptions: {
-								rows: 4
-							},
-							placeholder: 'Your plain text content here',
-						displayOptions: {
-							show: {
-								'/emailFormat': ['text', 'both'],
-							},
-						},
-					},
-						{
-							displayName: 'To',
-							name: 'to',
-							type: 'string',
-							required: true,
-							default: '',
-							placeholder: 'user@example.com',
-							description: 'Recipient email address (comma-separated for multiple)',
-						},
-					],
-				},
 				],
 			},
 
@@ -2706,27 +2883,100 @@ export class Resend implements INodeType {
 						});
 					} else if (operation === 'sendBatch') {
 						const emailsData = this.getNodeParameter('emails', i) as any;
-						const emailFormat = this.getNodeParameter('emailFormat', i) as string;
 
 						const emails = emailsData.emails.map((email: any) => {
+							const contentType = email.contentType ?? 'html';
 							const emailObj: any = {
 								from: email.from,
-								to: email.to.split(',').map((e: string) => e.trim()).filter((e: string) => e),
+								to: normalizeEmailList(email.to),
 								subject: email.subject,
 							};
 
-							if (emailFormat === 'html' || emailFormat === 'both') {
-								if (!email.html) {
-									throw new NodeOperationError(this.getNode(), 'HTML Content is required for batch emails.', { itemIndex: i });
+							if (email.cc) {
+								const ccList = normalizeEmailList(email.cc);
+								if (ccList.length) {
+									emailObj.cc = ccList;
 								}
-								emailObj.html = email.html;
+							}
+							if (email.bcc) {
+								const bccList = normalizeEmailList(email.bcc);
+								if (bccList.length) {
+									emailObj.bcc = bccList;
+								}
+							}
+							if (email.reply_to) {
+								const replyToList = normalizeEmailList(email.reply_to);
+								if (replyToList.length) {
+									emailObj.reply_to = replyToList;
+								}
+							}
+							if (email.headers?.headers?.length) {
+								const headers: Record<string, string> = {};
+								for (const header of email.headers.headers) {
+									if (header.name) {
+										headers[header.name] = header.value ?? '';
+									}
+								}
+								if (Object.keys(headers).length) {
+									emailObj.headers = headers;
+								}
+							}
+							if (email.tags?.tags?.length) {
+								emailObj.tags = email.tags.tags
+									.filter((tag: { name?: string }) => tag.name)
+									.map((tag: { name: string; value?: string }) => ({
+										name: tag.name,
+										value: tag.value ?? '',
+									}));
+							}
+							if (email.topic_id) {
+								emailObj.topic_id = email.topic_id;
 							}
 
-							if (emailFormat === 'text' || emailFormat === 'both') {
-								if (!email.text) {
-									throw new NodeOperationError(this.getNode(), 'Text Content is required for batch emails.', { itemIndex: i });
+							if (contentType === 'template') {
+								if (!email.templateId) {
+									throw new NodeOperationError(
+										this.getNode(),
+										'Template Name or ID is required for batch emails when using templates.',
+										{ itemIndex: i },
+									);
 								}
-								emailObj.text = email.text;
+								if (email.html || email.text) {
+									throw new NodeOperationError(
+										this.getNode(),
+										'HTML/Text Content cannot be used when sending batch emails with templates.',
+										{ itemIndex: i },
+									);
+								}
+								emailObj.template = {
+									id: email.templateId,
+								};
+								const variables = buildTemplateSendVariables(email.templateVariables);
+								if (variables?.length) {
+									emailObj.template.variables = variables;
+								}
+							} else {
+								if (contentType === 'html' || contentType === 'both') {
+									if (!email.html) {
+										throw new NodeOperationError(
+											this.getNode(),
+											'HTML Content is required for batch emails.',
+											{ itemIndex: i },
+										);
+									}
+									emailObj.html = email.html;
+								}
+
+								if (contentType === 'text' || contentType === 'both') {
+									if (!email.text) {
+										throw new NodeOperationError(
+											this.getNode(),
+											'Text Content is required for batch emails.',
+											{ itemIndex: i },
+										);
+									}
+									emailObj.text = email.text;
+								}
 							}
 
 							return emailObj;
