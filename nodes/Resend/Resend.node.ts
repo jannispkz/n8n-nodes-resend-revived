@@ -128,35 +128,6 @@ export class Resend implements INodeType {
 					},
 				],
 				default: 'send',
-			}, {
-				displayName: 'Email Format',
-				name: 'emailFormat',
-				type: 'options',
-				options: [
-					{
-						name: 'HTML',
-						value: 'html',
-						description: 'Send email with HTML content',
-					},
-					{
-						name: 'HTML and Text',
-						value: 'both',
-						description: 'Send email with both HTML and text content',
-					},
-					{
-						name: 'Text',
-						value: 'text',
-						description: 'Send email with plain text content',
-					},
-				],
-				default: 'html',
-				displayOptions: {
-					show: {
-						resource: ['email'],
-						operation: ['send', 'sendBatch'],
-					},
-				},
-				description: 'Choose the format for your email content. HTML allows rich formatting, text is simple and universally compatible.',
 			},
 			// Properties for "Send Email" operation
 			{
@@ -203,7 +174,111 @@ export class Resend implements INodeType {
 					},
 				},
 				description: 'Email subject line',
-			}, {
+			},
+			{
+				displayName: 'Use Template',
+				name: 'useTemplate',
+				type: 'boolean',
+				default: false,
+				displayOptions: {
+					show: {
+						resource: ['email'],
+						operation: ['send'],
+					},
+				},
+				description: 'Whether to send using a published template instead of HTML/Text content',
+			},
+			{
+				displayName: 'Email Format',
+				name: 'emailFormat',
+				type: 'options',
+				options: [
+					{
+						name: 'HTML',
+						value: 'html',
+						description: 'Send email with HTML content',
+					},
+					{
+						name: 'HTML and Text',
+						value: 'both',
+						description: 'Send email with both HTML and text content',
+					},
+					{
+						name: 'Text',
+						value: 'text',
+						description: 'Send email with plain text content',
+					},
+				],
+				default: 'html',
+				displayOptions: {
+					show: {
+						resource: ['email'],
+						operation: ['send'],
+						useTemplate: [false],
+					},
+				},
+				description: 'Choose the format for your email content. HTML allows rich formatting, text is simple and universally compatible.',
+			},
+			{
+				displayName: 'Template Name or ID',
+				name: 'emailTemplateId',
+				type: 'options',
+				required: true,
+				default: '',
+				placeholder: '34a080c9-b17d-4187-ad80-5af20266e535',
+				typeOptions: {
+					loadOptionsMethod: 'getTemplates',
+				},
+				displayOptions: {
+					show: {
+						resource: ['email'],
+						operation: ['send'],
+						useTemplate: [true],
+					},
+				},
+				description: 'Select a template or enter an ID/alias using an expression. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+			},
+			{
+				displayName: 'Template Variables',
+				name: 'emailTemplateVariables',
+				type: 'fixedCollection',
+				default: { variables: [] },
+				typeOptions: {
+					multipleValues: true,
+				},
+				displayOptions: {
+					show: {
+						resource: ['email'],
+						operation: ['send'],
+						useTemplate: [true],
+					},
+				},
+				description: 'Variables to render the template with',
+				options: [
+					{
+						name: 'variables',
+						displayName: 'Variable',
+						values: [
+							{
+								displayName: 'Key',
+								name: 'key',
+								type: 'string',
+								required: true,
+								default: '',
+								description: 'Template variable name',
+							},
+							{
+								displayName: 'Value',
+								name: 'value',
+								type: 'string',
+								default: '',
+								description: 'Value for the template variable',
+							},
+						],
+					},
+				],
+			},
+			{
 				displayName: 'HTML Content',
 				name: 'html',
 				type: 'string',
@@ -218,6 +293,7 @@ export class Resend implements INodeType {
 						resource: ['email'],
 						operation: ['send'],
 						emailFormat: ['html', 'both'],
+						useTemplate: [false],
 					},
 				},
 				description: 'HTML version of the email content',
@@ -237,6 +313,7 @@ export class Resend implements INodeType {
 						resource: ['email'],
 						operation: ['send'],
 						emailFormat: ['text', 'both'],
+						useTemplate: [false],
 					},
 				},
 				description: 'Plain text version of the email content',
@@ -299,6 +376,30 @@ export class Resend implements INodeType {
 										},
 									},
 									{
+										displayName: 'Content ID',
+										name: 'content_id',
+										type: 'string',
+										default: '',
+										placeholder: 'image-1',
+										description: 'Content ID for embedding inline attachments via cid:',
+									},
+									{
+										displayName: 'Content Type',
+										name: 'content_type',
+										type: 'string',
+										default: '',
+										placeholder: 'image/png',
+										description: 'Content type for the attachment',
+									},
+									{
+										displayName: 'File Name',
+										name: 'filename',
+										type: 'string',
+										default: '',
+										placeholder: 'document.pdf',
+										description: 'Name for the attached file (required for both binary data and URL)',
+									},
+									{
 										displayName: 'File URL',
 										name: 'fileUrl',
 										type: 'string',
@@ -310,13 +411,6 @@ export class Resend implements INodeType {
 												attachmentType: ['url'],
 											},
 										},
-									},									{
-										displayName: 'File Name',
-										name: 'filename',
-										type: 'string',
-										default: '',
-										placeholder: 'document.pdf',
-										description: 'Name for the attached file (required for both binary data and URL)',
 									},
 								],
 							},
@@ -2365,6 +2459,20 @@ export class Resend implements INodeType {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 		const length = items.length;
+		const normalizeEmailList = (value: string | string[] | undefined) => {
+			if (Array.isArray(value)) {
+				return value
+					.map((email) => String(email).trim())
+					.filter((email) => email);
+			}
+			if (typeof value === 'string') {
+				return value
+					.split(',')
+					.map((email) => email.trim())
+					.filter((email) => email);
+			}
+			return [];
+		};
 		const parseTemplateVariables = (
 			variablesInput: { variables?: Array<{ key: string; type: string; fallbackValue?: unknown }> } | undefined,
 			fallbackKey: 'fallbackValue' | 'fallback_value',
@@ -2406,15 +2514,14 @@ export class Resend implements INodeType {
 			if (!variablesInput?.variables?.length) {
 				return undefined;
 			}
+			const variables = variablesInput.variables
+				.filter((variable) => variable.key)
+				.map((variable) => ({
+					key: variable.key,
+					value: variable.value ?? '',
+				}));
 
-			const variables: Record<string, unknown> = {};
-			for (const variable of variablesInput.variables) {
-				if (variable.key) {
-					variables[variable.key] = variable.value ?? '';
-				}
-			}
-
-			return Object.keys(variables).length ? variables : undefined;
+			return variables.length ? variables : undefined;
 		};
 
 		for (let i = 0; i < length; i++) {
@@ -2430,57 +2537,78 @@ export class Resend implements INodeType {
 				if (resource === 'email') {
 					if (operation === 'send') {
 						const from = this.getNodeParameter('from', i) as string;
-						const to = this.getNodeParameter('to', i) as string;
+						const toValue = this.getNodeParameter('to', i) as string | string[];
 						const subject = this.getNodeParameter('subject', i) as string;
-						const emailFormat = this.getNodeParameter('emailFormat', i) as string;
+						const useTemplate = this.getNodeParameter('useTemplate', i) as boolean;
 						const additionalOptions = this.getNodeParameter('additionalOptions', i, {}) as any;
 
 						const requestBody: any = {
 							from,
-							to: to.split(',').map((email: string) => email.trim()).filter((email: string) => email),
+							to: normalizeEmailList(toValue),
 							subject,
 						};
 
-						// Add content based on selected format
-						if (emailFormat === 'html' || emailFormat === 'both') {
-							const html = this.getNodeParameter('html', i) as string;
-							if (!html) {
-								throw new NodeOperationError(this.getNode(), 'HTML Content is required.', { itemIndex: i });
+						if (useTemplate) {
+							const templateId = this.getNodeParameter('emailTemplateId', i) as string;
+							const templateVariables = this.getNodeParameter('emailTemplateVariables', i, {}) as any;
+							if (!templateId) {
+								throw new NodeOperationError(
+									this.getNode(),
+									'Template Name or ID is required when sending with a template.',
+									{ itemIndex: i },
+								);
 							}
-							requestBody.html = html;
-						}
-						if (emailFormat === 'text' || emailFormat === 'both') {
-							const text = this.getNodeParameter('text', i) as string;
-							if (!text) {
-								throw new NodeOperationError(this.getNode(), 'Text Content is required.', { itemIndex: i });
+
+							const html = this.getNodeParameter('html', i, '') as string;
+							const text = this.getNodeParameter('text', i, '') as string;
+							if (html || text) {
+								throw new NodeOperationError(
+									this.getNode(),
+									'HTML/Text Content cannot be used when sending with a template.',
+									{ itemIndex: i },
+								);
 							}
-							requestBody.text = text;
+
+							requestBody.template = {
+								id: templateId,
+							};
+							const variables = buildTemplateSendVariables(templateVariables);
+							if (variables?.length) {
+								requestBody.template.variables = variables;
+							}
+						} else {
+							const emailFormat = this.getNodeParameter('emailFormat', i) as string;
+							if (emailFormat === 'html' || emailFormat === 'both') {
+								const html = this.getNodeParameter('html', i) as string;
+								if (!html) {
+									throw new NodeOperationError(this.getNode(), 'HTML Content is required.', { itemIndex: i });
+								}
+								requestBody.html = html;
+							}
+							if (emailFormat === 'text' || emailFormat === 'both') {
+								const text = this.getNodeParameter('text', i) as string;
+								if (!text) {
+									throw new NodeOperationError(this.getNode(), 'Text Content is required.', { itemIndex: i });
+								}
+								requestBody.text = text;
+							}
 						}
 						if (additionalOptions.cc) {
-							requestBody.cc = additionalOptions.cc
-								.split(',')
-								.map((email: string) => email.trim())
-								.filter((email: string) => email);
+							const ccList = normalizeEmailList(additionalOptions.cc);
+							if (ccList.length) {
+								requestBody.cc = ccList;
+							}
 						}
 						if (additionalOptions.bcc) {
-							requestBody.bcc = additionalOptions.bcc
-								.split(',')
-								.map((email: string) => email.trim())
-								.filter((email: string) => email);
+							const bccList = normalizeEmailList(additionalOptions.bcc);
+							if (bccList.length) {
+								requestBody.bcc = bccList;
+							}
 						}
 						if (additionalOptions.reply_to) {
-							if (Array.isArray(additionalOptions.reply_to)) {
-								requestBody.reply_to = additionalOptions.reply_to;
-							} else if (
-								typeof additionalOptions.reply_to === 'string' &&
-								additionalOptions.reply_to.includes(',')
-							) {
-								requestBody.reply_to = additionalOptions.reply_to
-									.split(',')
-									.map((email: string) => email.trim())
-									.filter((email: string) => email);
-							} else {
-								requestBody.reply_to = additionalOptions.reply_to;
+							const replyToList = normalizeEmailList(additionalOptions.reply_to);
+							if (replyToList.length) {
+								requestBody.reply_to = replyToList;
 							}
 						}
 						if (additionalOptions.headers?.headers?.length) {
@@ -2504,35 +2632,66 @@ export class Resend implements INodeType {
 						}
 						if (additionalOptions.topic_id) requestBody.topic_id = additionalOptions.topic_id;
 						if (additionalOptions.scheduled_at) requestBody.scheduled_at = additionalOptions.scheduled_at;
-						
+
 						// Validate that attachments aren't used with scheduled emails
-						if (additionalOptions.attachments && additionalOptions.attachments.attachments && additionalOptions.attachments.attachments.length > 0 && additionalOptions.scheduled_at) {
-							throw new NodeOperationError(this.getNode(), 'Attachments cannot be used with scheduled emails. Please remove either the attachments or the scheduled time.', { itemIndex: i });
+						if (
+							additionalOptions.attachments &&
+							additionalOptions.attachments.attachments &&
+							additionalOptions.attachments.attachments.length > 0 &&
+							additionalOptions.scheduled_at
+						) {
+							throw new NodeOperationError(
+								this.getNode(),
+								'Attachments cannot be used with scheduled emails. Please remove either the attachments or the scheduled time.',
+								{ itemIndex: i },
+							);
 						}
 
 						// Handle attachments
-						if (additionalOptions.attachments && additionalOptions.attachments.attachments && additionalOptions.attachments.attachments.length > 0) {
-							requestBody.attachments = additionalOptions.attachments.attachments.map((attachment: any) => {
+						if (
+							additionalOptions.attachments &&
+							additionalOptions.attachments.attachments &&
+							additionalOptions.attachments.attachments.length > 0
+						) {
+							requestBody.attachments = additionalOptions.attachments.attachments
+								.map((attachment: any) => {
+									const contentId = attachment.content_id;
+									const contentType = attachment.content_type;
 								if (attachment.attachmentType === 'binaryData') {
 									// Get binary data from the current item
 									const binaryPropertyName = attachment.binaryPropertyName || 'data';
 									const binaryData = items[i].binary?.[binaryPropertyName];
-											if (!binaryData) {
+									if (!binaryData) {
 										throw new NodeOperationError(this.getNode(), `Binary property "${binaryPropertyName}" not found in item ${i}`, { itemIndex: i });
 									}
-									
-									return {
+
+									const attachmentEntry: Record<string, unknown> = {
 										filename: attachment.filename,
 										content: binaryData.data, // This should be base64 content
 									};
+									if (contentId) {
+										attachmentEntry.content_id = contentId;
+									}
+									if (contentType) {
+										attachmentEntry.content_type = contentType;
+									}
+									return attachmentEntry;
 								} else if (attachment.attachmentType === 'url') {
-									return {
+									const attachmentEntry: Record<string, unknown> = {
 										filename: attachment.filename,
 										path: attachment.fileUrl,
 									};
+									if (contentId) {
+										attachmentEntry.content_id = contentId;
+									}
+									if (contentType) {
+										attachmentEntry.content_type = contentType;
+									}
+									return attachmentEntry;
 								}
 								return null;
-							}).filter((attachment: any) => attachment !== null);
+							})
+								.filter((attachment: any) => attachment !== null);
 						}
 
 						response = await this.helpers.httpRequest({
@@ -2798,19 +2957,14 @@ export class Resend implements INodeType {
 
 						const requestBody: any = {
 							from: templateFrom,
-							to: Array.isArray(templateTo)
-								? templateTo
-								: templateTo
-										.split(',')
-										.map((email: string) => email.trim())
-										.filter((email: string) => email),
+							to: normalizeEmailList(templateTo),
 							template: {
 								id: templateId,
 							},
 						};
 
 						const variables = buildTemplateSendVariables(templateSendVariables);
-						if (variables && Object.keys(variables).length) {
+						if (variables?.length) {
 							requestBody.template.variables = variables;
 						}
 
