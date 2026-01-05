@@ -76,59 +76,33 @@ export const resendRequest = async <T = unknown>(
 };
 
 /**
- * Generic paginated loader for dropdown options.
- * Used by getTemplates, getSegments, getTopics to reduce code duplication.
+ * Load options for dropdown fields (max 100 items).
+ * Used by getTemplates, getSegments, getTopics.
  */
-const paginatedLoadOptions = async (
+const loadDropdownOptions = async (
 	loadOptionsFunctions: ILoadOptionsFunctions,
 	endpoint: string,
 ): Promise<INodePropertyOptions[]> => {
 	const credentials = await loadOptionsFunctions.getCredentials('resendApi');
 	const apiKey = credentials.apiKey as string;
-	const returnData: INodePropertyOptions[] = [];
-	const limit = 100;
-	let after: string | undefined;
-	let hasMore = true;
-	let pageCount = 0;
-	const maxPages = 10;
 
-	while (hasMore) {
-		const qs: Record<string, string | number> = { limit };
-		if (after) {
-			qs.after = after;
-		}
+	const response = await loadOptionsFunctions.helpers.httpRequest({
+		url: `${RESEND_API_BASE}${endpoint}`,
+		method: 'GET',
+		headers: {
+			Authorization: `Bearer ${apiKey}`,
+		},
+		qs: { limit: 100 },
+		json: true,
+	});
 
-		const response = await loadOptionsFunctions.helpers.httpRequest({
-			url: `${RESEND_API_BASE}${endpoint}`,
-			method: 'GET',
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-			},
-			qs,
-			json: true,
-		});
-
-		const items = response?.data ?? [];
-		for (const item of items) {
-			if (!item?.id) {
-				continue;
-			}
-			const name = item.name ? `${item.name} (${item.id})` : item.id;
-			returnData.push({
-				name,
-				value: item.id,
-			});
-		}
-
-		hasMore = Boolean(response?.has_more);
-		after = items.length ? items[items.length - 1].id : undefined;
-		pageCount += 1;
-		if (!after || pageCount >= maxPages) {
-			break;
-		}
-	}
-
-	return returnData;
+	const items = response?.data ?? [];
+	return items
+		.filter((item: { id?: string }) => item?.id)
+		.map((item: { id: string; name?: string }) => ({
+			name: item.name ? `${item.name} (${item.id})` : item.id,
+			value: item.id,
+		}));
 };
 
 export const normalizeEmailList = (value: string | string[] | undefined) => {
@@ -217,13 +191,10 @@ export const requestList = async (
 		);
 	}
 
-	const shouldReturnAll = returnAll === true;
-	const qs: Record<string, string | number> = {};
-	const pageSize = shouldReturnAll ? 100 : (limit ?? 50);
+	const targetLimit = returnAll ? 1000 : (limit ?? 50);
+	const pageSize = Math.min(targetLimit, 100); // Resend API max is 100
+	const qs: Record<string, string | number> = { limit: pageSize };
 
-	if (pageSize !== undefined) {
-		qs.limit = pageSize;
-	}
 	if (listOptions.after) {
 		qs.after = listOptions.after;
 	}
@@ -242,38 +213,34 @@ export const requestList = async (
 			json: true,
 		});
 
-	if (!shouldReturnAll) {
-		const singleResponse = await requestPage();
-		if (
-			typeof limit === 'number' &&
-			limit > 0 &&
-			Array.isArray((singleResponse as { data?: unknown[] }).data)
-		) {
-			const responseData = (singleResponse as { data?: unknown[] }).data ?? [];
-			if (responseData.length > limit) {
-				(singleResponse as { data: unknown[] }).data = responseData.slice(0, limit);
-			}
-		}
-		return singleResponse;
-	}
+	const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 	const allItems: unknown[] = [];
 	let lastResponse: unknown;
 	let hasMore = true;
-	let pageCount = 0;
-	const maxPages = 100;
+	let isFirstRequest = true;
 	let paginationMode: 'after' | 'before' | undefined = listOptions.before ? 'before' : undefined;
 
 	while (hasMore) {
+		// Rate limiting: wait 1 second between requests (Resend allows 2 req/sec)
+		if (!isFirstRequest) {
+			await sleep(1000);
+		}
+		isFirstRequest = false;
+
 		lastResponse = await requestPage();
 		const responseData = Array.isArray((lastResponse as { data?: unknown[] }).data)
 			? ((lastResponse as { data?: unknown[] }).data as unknown[])
 			: [];
 		allItems.push(...responseData);
 
+		// Stop if we have enough items
+		if (allItems.length >= targetLimit) {
+			break;
+		}
+
 		hasMore = Boolean((lastResponse as { has_more?: boolean }).has_more);
-		pageCount += 1;
-		if (!hasMore || responseData.length === 0 || pageCount >= maxPages) {
+		if (!hasMore || responseData.length === 0) {
 			break;
 		}
 
@@ -292,13 +259,16 @@ export const requestList = async (
 		}
 	}
 
+	// Slice to exact limit
+	const finalData = allItems.slice(0, targetLimit);
+
 	if (lastResponse && Array.isArray((lastResponse as { data?: unknown[] }).data)) {
-		(lastResponse as { data: unknown[] }).data = allItems;
+		(lastResponse as { data: unknown[] }).data = finalData;
 		(lastResponse as { has_more?: boolean }).has_more = false;
 		return lastResponse;
 	}
 
-	return { object: 'list', data: allItems, has_more: false };
+	return { object: 'list', data: finalData, has_more: false };
 };
 
 export async function getTemplateVariables(
@@ -372,17 +342,17 @@ export async function getTemplateVariables(
 export async function getTemplates(
 	this: ILoadOptionsFunctions,
 ): Promise<INodePropertyOptions[]> {
-	return paginatedLoadOptions(this, '/templates');
+	return loadDropdownOptions(this, '/templates');
 }
 
 export async function getSegments(
 	this: ILoadOptionsFunctions,
 ): Promise<INodePropertyOptions[]> {
-	return paginatedLoadOptions(this, '/segments');
+	return loadDropdownOptions(this, '/segments');
 }
 
 export async function getTopics(
 	this: ILoadOptionsFunctions,
 ): Promise<INodePropertyOptions[]> {
-	return paginatedLoadOptions(this, '/topics');
+	return loadDropdownOptions(this, '/topics');
 }
