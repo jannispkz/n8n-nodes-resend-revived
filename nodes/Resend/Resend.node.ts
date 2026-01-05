@@ -338,7 +338,7 @@ export class Resend implements INodeType {
 						typeOptions: {
 							multipleValues: true,
 						},
-						description: 'Email attachments (not supported with scheduled emails or batch emails)',
+						description: 'Email attachments (not supported with scheduled emails)',
 						options: [
 							{
 								name: 'attachments',
@@ -533,12 +533,62 @@ export class Resend implements INodeType {
 						operation: ['sendBatch'],
 					},
 				},
-				description: 'Array of emails to send (max 100). Note: Attachments are not supported with batch emails.',
+				description: 'Array of emails to send (max 100)',
 				options: [
 					{
 						name: 'emails',
 						displayName: 'Email',
 						values: [
+							{
+								displayName: 'Attachments',
+								name: 'attachments',
+								type: 'fixedCollection',
+								default: { attachments: [] },
+								typeOptions: {
+									multipleValues: true,
+								},
+								options: [
+									{
+										name: 'attachments',
+										displayName: 'Attachment',
+										values: [
+											{
+												displayName: 'Binary Property',
+												name: 'binaryPropertyName',
+												type: 'string',
+												default: 'data',
+												placeholder: 'data',
+												description: 'Name of the binary property which contains the file data',
+											},
+											{
+												displayName: 'Content ID',
+												name: 'content_id',
+												type: 'string',
+												default: '',
+												placeholder: 'image-1',
+												description: 'Content ID for embedding inline attachments via cid:',
+											},
+											{
+												displayName: 'Content Type',
+												name: 'content_type',
+												type: 'string',
+												default: '',
+												placeholder: 'application/pdf',
+												description: 'Content type for the attachment',
+											},
+											{
+												displayName: 'File Name',
+												name: 'filename',
+												type: 'string',
+												default: '',
+												placeholder: 'document.pdf',
+												description: 'Name for the attached file',
+											},
+										],
+									},
+								],
+								description: 'Attachments for this email (binary data only)',
+							},
 							{
 								displayName: 'BCC',
 								name: 'bcc',
@@ -774,6 +824,47 @@ export class Resend implements INodeType {
 								description: 'Topic ID to scope the email to',
 							},
 						],
+					},
+				],
+			},
+			{
+				displayName: 'Batch Options',
+				name: 'batchOptions',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: {
+					show: {
+						resource: ['email'],
+						operation: ['sendBatch'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Idempotency Key',
+						name: 'idempotency_key',
+						type: 'string',
+						default: '',
+						description: 'Unique key to ensure the batch request is processed only once',
+					},
+					{
+						displayName: 'Validation Mode',
+						name: 'validation_mode',
+						type: 'options',
+						default: 'strict',
+						options: [
+							{
+								name: 'Strict',
+								value: 'strict',
+								description: 'Reject the entire batch if any email fails validation',
+							},
+							{
+								name: 'Permissive',
+								value: 'permissive',
+								description: 'Send valid emails and return errors for invalid ones',
+							},
+						],
+						description: 'How Resend should validate the batch',
 					},
 				],
 			},
@@ -2883,6 +2974,7 @@ export class Resend implements INodeType {
 						});
 					} else if (operation === 'sendBatch') {
 						const emailsData = this.getNodeParameter('emails', i) as any;
+						const batchOptions = this.getNodeParameter('batchOptions', i, {}) as any;
 
 						const emails = emailsData.emails.map((email: any) => {
 							const contentType = email.contentType ?? 'html';
@@ -2909,6 +3001,38 @@ export class Resend implements INodeType {
 								if (replyToList.length) {
 									emailObj.reply_to = replyToList;
 								}
+							}
+							if (email.attachments?.attachments?.length) {
+								emailObj.attachments = email.attachments.attachments.map((attachment: any) => {
+									const binaryPropertyName = attachment.binaryPropertyName || 'data';
+									const binaryData = items[i].binary?.[binaryPropertyName];
+									if (!binaryData) {
+										throw new NodeOperationError(
+											this.getNode(),
+											`Binary property "${binaryPropertyName}" not found in item ${i}`,
+											{ itemIndex: i },
+										);
+									}
+									if (!attachment.filename) {
+										throw new NodeOperationError(
+											this.getNode(),
+											'File Name is required for batch email attachments.',
+											{ itemIndex: i },
+										);
+									}
+
+									const attachmentEntry: Record<string, unknown> = {
+										filename: attachment.filename,
+										content: binaryData.data,
+									};
+									if (attachment.content_id) {
+										attachmentEntry.content_id = attachment.content_id;
+									}
+									if (attachment.content_type) {
+										attachmentEntry.content_type = attachment.content_type;
+									}
+									return attachmentEntry;
+								});
 							}
 							if (email.headers?.headers?.length) {
 								const headers: Record<string, string> = {};
@@ -2982,13 +3106,23 @@ export class Resend implements INodeType {
 							return emailObj;
 						});
 
+						const qs: Record<string, string> = {};
+						if (batchOptions.validation_mode) {
+							qs.validation_mode = batchOptions.validation_mode;
+						}
+						const headers: Record<string, string> = {
+							Authorization: `Bearer ${apiKey}`,
+							'Content-Type': 'application/json',
+						};
+						if (batchOptions.idempotency_key) {
+							headers['Idempotency-Key'] = batchOptions.idempotency_key;
+						}
+
 						response = await this.helpers.httpRequest({
 							url: 'https://api.resend.com/emails/batch',
 							method: 'POST',
-							headers: {
-								Authorization: `Bearer ${apiKey}`,
-								'Content-Type': 'application/json',
-							},
+							headers,
+							qs,
 							body: emails,
 							json: true,
 						});
@@ -3173,7 +3307,7 @@ export class Resend implements INodeType {
 							requestBody.text = updateFields.text;
 						}
 
-						const variables = parseTemplateVariables(templateVariables, 'fallback_value', i);
+						const variables = parseTemplateVariables(templateVariables, 'fallbackValue', i);
 						if (variables?.length) {
 							requestBody.variables = variables;
 						}

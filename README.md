@@ -316,7 +316,8 @@ Actions:
 > [!WARNING]  
 > **Attachment Limitations:**
 > - Maximum email size: **40MB** (including attachments)
-> - Attachments **not supported** with scheduled emails or batch operations
+> - Attachments **not supported** with scheduled emails
+> - Batch attachments require binary (base64) content
 > - Some file types may be blocked by email providers
 
 > [!NOTE]  
