@@ -156,7 +156,7 @@ Send up to 100 emails in a single API call for better performance.
 - ✅ Bulk email sending
 - ✅ Individual customization per email
 - ✅ Better rate limiting
-- ⚠️ No attachment support (API limitation)
+- ⚠️ Binary attachments only (no URL attachments)
 
 #### Email Management
 - **List Emails** - List sent emails
