@@ -2862,14 +2862,15 @@ export class Resend implements INodeType {
 			if (!variablesInput?.variables?.length) {
 				return undefined;
 			}
-			const variables = variablesInput.variables
-				.filter((variable) => variable.key)
-				.map((variable) => ({
-					key: variable.key,
-					value: variable.value ?? '',
-				}));
+			const variables: Record<string, unknown> = {};
+			for (const variable of variablesInput.variables) {
+				if (!variable.key) {
+					continue;
+				}
+				variables[variable.key] = variable.value ?? '';
+			}
 
-			return variables.length ? variables : undefined;
+			return Object.keys(variables).length ? variables : undefined;
 		};
 
 		for (let i = 0; i < length; i++) {
@@ -2921,7 +2922,7 @@ export class Resend implements INodeType {
 								id: templateId,
 							};
 							const variables = buildTemplateSendVariables(templateVariables);
-							if (variables?.length) {
+							if (variables && Object.keys(variables).length) {
 								requestBody.template.variables = variables;
 							}
 						} else {
@@ -3170,7 +3171,7 @@ export class Resend implements INodeType {
 									id: email.templateId,
 								};
 								const variables = buildTemplateSendVariables(email.templateVariables);
-								if (variables?.length) {
+								if (variables && Object.keys(variables).length) {
 									emailObj.template.variables = variables;
 								}
 							} else {
@@ -3442,7 +3443,7 @@ export class Resend implements INodeType {
 						};
 
 						const variables = buildTemplateSendVariables(templateSendVariables);
-						if (variables?.length) {
+						if (variables && Object.keys(variables).length) {
 							requestBody.template.variables = variables;
 						}
 
