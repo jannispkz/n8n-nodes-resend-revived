@@ -1615,7 +1615,6 @@ export class Resend implements INodeType {
 				displayName: 'API Key Name',
 				name: 'apiKeyName',
 				type: 'string',
-				typeOptions: { password: true },
 				required: true,
 				default: '',
 				placeholder: 'My API Key',
