@@ -21,8 +21,6 @@
 
 A community node for [n8n](https://n8n.io) that integrates with the [Resend](https://resend.com) email API. Send emails, manage contacts, handle domains, and receive webhooks.
 
-> Forked from [SilkePilon/n8n-nodes-resend](https://github.com/SilkePilon/n8n-nodes-resend) as the original project appears abandoned.
-
 ## Installation
 
 ### Community Nodes (Recommended)
@@ -194,6 +192,10 @@ npm run lint
 ## License
 
 [MIT](LICENSE.md)
+
+## Acknowledgments
+
+Based on [n8n-nodes-resend](https://github.com/SilkePilon/n8n-nodes-resend) by SilkePilon.
 
 ---
 
