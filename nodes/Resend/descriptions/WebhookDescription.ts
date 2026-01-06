@@ -79,7 +79,7 @@ export const webhookFields: INodeProperties[] = [
 				operation: ['create'],
 			},
 		},
-		description: 'Public HTTPS URL where webhook events will be delivered.',
+		description: 'Public HTTPS URL where webhook events will be delivered',
 	},
 	{
 		displayName: 'Events',
@@ -94,7 +94,7 @@ export const webhookFields: INodeProperties[] = [
 			},
 		},
 		options: webhookEventOptions,
-		description: 'Events that should trigger webhook delivery.',
+		description: 'Events that should trigger webhook delivery',
 	},
 	{
 		displayName: 'Webhook ID',
@@ -109,7 +109,7 @@ export const webhookFields: INodeProperties[] = [
 				operation: ['get', 'update', 'delete'],
 			},
 		},
-		description: 'The ID of the webhook.',
+		description: 'The ID of the webhook',
 	},
 	{
 		displayName: 'Update Fields',
@@ -130,7 +130,7 @@ export const webhookFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				placeholder: 'https://example.com/webhooks/resend',
-				description: 'Public HTTPS URL where webhook events will be delivered.',
+				description: 'Public HTTPS URL where webhook events will be delivered',
 			},
 			{
 				displayName: 'Events',
@@ -138,7 +138,7 @@ export const webhookFields: INodeProperties[] = [
 				type: 'multiOptions',
 				default: ['email.sent'],
 				options: webhookEventOptions,
-				description: 'Events that should trigger webhook delivery.',
+				description: 'Events that should trigger webhook delivery',
 			},
 			{
 				displayName: 'Status',
@@ -149,7 +149,7 @@ export const webhookFields: INodeProperties[] = [
 					{ name: 'Enabled', value: 'enabled' },
 					{ name: 'Disabled', value: 'disabled' },
 				],
-				description: 'Whether the webhook should be enabled or disabled.',
+				description: 'Whether the webhook should be enabled or disabled',
 			},
 		],
 	},

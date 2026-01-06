@@ -186,7 +186,7 @@ export const emailFields: INodeProperties[] = [
 				displayName: 'Variable',
 				values: [
 					{
-						displayName: 'Key',
+						displayName: 'Key Name or ID',
 						name: 'key',
 						type: 'options',
 						required: true,
@@ -196,7 +196,7 @@ export const emailFields: INodeProperties[] = [
 							loadOptionsDependsOn: ['emailTemplateId'],
 							allowCustomValues: true,
 						},
-						description: 'Template variable name',
+						description: 'Template variable name. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 					},
 					{
 						displayName: 'Value',
@@ -472,38 +472,145 @@ export const emailFields: INodeProperties[] = [
 				displayName: 'Email',
 				values: [
 					{
-						displayName: 'From',
-						name: 'from',
-						type: 'string',
-						required: true,
-						default: '',
-						placeholder: 'you@example.com',
-						description: 'Sender email address',
-					},
-					{
-						displayName: 'To',
-						name: 'to',
-						type: 'string',
-						required: true,
-						default: '',
-						placeholder: 'user@example.com',
-						description: 'Recipient email address (comma-separated for multiple)',
-					},
-					{
-						displayName: 'Subject',
-						name: 'subject',
-						type: 'string',
-						required: true,
-						default: '',
-						placeholder: 'Hello from n8n!',
-						description: 'Email subject',
-					},
-					{
-						displayName: 'Use Template',
-						name: 'useTemplate',
-						type: 'boolean',
-						default: false,
-						description: 'Whether to send using a published template instead of HTML/Text content',
+						displayName: 'Additional Options',
+						name: 'additionalOptions',
+						type: 'collection',
+						default: {},
+						placeholder: 'Add Option',
+						options: [
+							{
+								displayName: 'Attachments',
+								name: 'attachments',
+								type: 'fixedCollection',
+								default: {},
+								options: [
+											{
+												name: 'attachments',
+												displayName: 'Attachment',
+													values:	[
+													{
+														displayName: 'Binary Property',
+														name: 'binaryPropertyName',
+														type: 'string',
+														default: 'data',
+														placeholder: 'data',
+														description: 'Name of the binary property which contains the file data',
+													},
+													{
+														displayName: 'Content ID',
+														name: 'content_id',
+														type: 'string',
+														default: '',
+														placeholder: 'image-1',
+														description: 'Content ID for embedding inline attachments via cid:',
+													},
+													{
+														displayName: 'Content Type',
+														name: 'content_type',
+														type: 'string',
+														default: '',
+														placeholder: 'application/pdf',
+														description: 'Content type for the attachment',
+													},
+													{
+														displayName: 'File Name',
+														name: 'filename',
+														type: 'string',
+														default: '',
+														placeholder: 'document.pdf',
+														description: 'Name for the attached file',
+													},
+												]
+											},
+									],
+								description: 'Attachments for this email (binary data only)',
+							},
+							{
+								displayName: 'BCC',
+								name: 'bcc',
+								type: 'string',
+								default: '',
+								description: 'BCC recipient email addresses (comma-separated)',
+							},
+							{
+								displayName: 'CC',
+								name: 'cc',
+								type: 'string',
+								default: '',
+								description: 'CC recipient email addresses (comma-separated)',
+							},
+							{
+								displayName: 'Headers',
+								name: 'headers',
+								type: 'fixedCollection',
+								default: {},
+								options: [
+											{
+												name: 'headers',
+												displayName: 'Header',
+													values:	[
+													{
+														displayName: 'Name',
+														name: 'name',
+														type: 'string',
+															required:	true,
+														default: '',
+													},
+													{
+														displayName: 'Value',
+														name: 'value',
+														type: 'string',
+														default: '',
+													},
+													]
+											},
+									],
+								description: 'Custom headers to add to the email',
+							},
+							{
+								displayName: 'Reply To',
+								name: 'reply_to',
+								type: 'string',
+								default: '',
+								description: 'Reply-to email address. For multiple addresses, use comma-separated values.',
+							},
+							{
+								displayName: 'Tags',
+								name: 'tags',
+								type: 'fixedCollection',
+								default: {},
+								options: [
+											{
+												name: 'tags',
+												displayName: 'Tag',
+													values:	[
+													{
+														displayName: 'Name',
+														name: 'name',
+														type: 'string',
+															required:	true,
+														default: '',
+													},
+													{
+														displayName: 'Value',
+														name: 'value',
+														type: 'string',
+															required:	true,
+														default: '',
+													},
+													]
+											},
+									],
+								description: 'Tags to attach to the email',
+							},
+							{
+								displayName: 'Topic ID',
+								name: 'topic_id',
+								type: 'string',
+								default: '',
+								description: 'Topic ID to scope the email to',
+							},
+					]
 					},
 					{
 						displayName: 'Email Format',
@@ -525,14 +632,18 @@ export const emailFields: INodeProperties[] = [
 								value: 'text',
 								description: 'Send email with plain text content',
 							},
-						],
+					],
 						default: 'html',
-						displayOptions: {
-							show: {
-								useTemplate: [false],
-							},
-						},
 						description: 'Choose the format for your email content. HTML allows rich formatting, text is simple and universally compatible.',
+					},
+					{
+						displayName: 'From',
+						name: 'from',
+						type: 'string',
+							required:	true,
+						default: '',
+						placeholder: 'you@example.com',
+						description: 'Sender email address',
 					},
 					{
 						displayName: 'HTML Content',
@@ -541,15 +652,54 @@ export const emailFields: INodeProperties[] = [
 						default: '',
 						description: 'HTML content of the email',
 						placeholder: '<p>Your HTML content here</p>',
-						typeOptions: {
-							rows: 4,
-						},
-						displayOptions: {
-							show: {
-								emailFormat: ['html', 'both'],
-								useTemplate: [false],
+					},
+					{
+						displayName: 'Subject',
+						name: 'subject',
+						type: 'string',
+							required:	true,
+						default: '',
+						placeholder: 'Hello from n8n!',
+						description: 'Email subject',
+					},
+					{
+						displayName: 'Template Name or ID',
+						name: 'templateId',
+						type: 'options',
+							required:	true,
+						default: '',
+						placeholder: '34a080c9-b17d-4187-ad80-5af20266e535',
+						description: 'Select a template or enter an ID/alias using an expression. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					},
+					{
+						displayName: 'Template Variables',
+						name: 'templateVariables',
+						type: 'fixedCollection',
+						default: {},
+						description: 'Variables to render the template with',
+						options: [
+							{
+								name: 'variables',
+								displayName: 'Variable',
+									values:	[
+											{
+												displayName: 'Key',
+												name: 'key',
+												type: 'options',
+													required:	true,
+												default: '',
+												description: 'Template variable name',
+											},
+											{
+												displayName: 'Value',
+												name: 'value',
+												type: 'string',
+												default: '',
+												description: 'Value for the template variable',
+											},
+									]
 							},
-						},
+					]
 					},
 					{
 						displayName: 'Text Content',
@@ -557,228 +707,25 @@ export const emailFields: INodeProperties[] = [
 						type: 'string',
 						default: '',
 						description: 'Plain text content of the email',
-						typeOptions: {
-							rows: 4,
-						},
 						placeholder: 'Your plain text content here',
-						displayOptions: {
-							show: {
-								emailFormat: ['text', 'both'],
-								useTemplate: [false],
-							},
-						},
 					},
 					{
-						displayName: 'Template Name or ID',
-						name: 'templateId',
-						type: 'options',
-						required: true,
+						displayName: 'To',
+						name: 'to',
+						type: 'string',
+							required:	true,
 						default: '',
-						placeholder: '34a080c9-b17d-4187-ad80-5af20266e535',
-						typeOptions: {
-							loadOptionsMethod: 'getTemplates',
-						},
-						displayOptions: {
-							show: {
-								useTemplate: [true],
-							},
-						},
-						description: 'Select a template or enter an ID/alias using an expression. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+						placeholder: 'user@example.com',
+						description: 'Recipient email address (comma-separated for multiple)',
 					},
 					{
-						displayName: 'Template Variables',
-						name: 'templateVariables',
-						type: 'fixedCollection',
-						default: { variables: [] },
-						typeOptions: {
-							multipleValues: true,
-						},
-						displayOptions: {
-							show: {
-								useTemplate: [true],
-							},
-						},
-						description: 'Variables to render the template with',
-						options: [
-							{
-								name: 'variables',
-								displayName: 'Variable',
-								values: [
-									{
-										displayName: 'Key',
-										name: 'key',
-										type: 'options',
-										required: true,
-										default: '',
-										typeOptions: {
-											loadOptionsMethod: 'getTemplateVariables',
-											loadOptionsDependsOn: ['templateId'],
-											allowCustomValues: true,
-										},
-										description: 'Template variable name',
-									},
-									{
-										displayName: 'Value',
-										name: 'value',
-										type: 'string',
-										default: '',
-										description: 'Value for the template variable',
-									},
-								],
-							},
-						],
+						displayName: 'Use Template',
+						name: 'useTemplate',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to send using a published template instead of HTML/Text content',
 					},
-					{
-						displayName: 'Additional Options',
-						name: 'additionalOptions',
-						type: 'collection',
-						placeholder: 'Add Option',
-						default: {},
-						options: [
-							{
-								displayName: 'Attachments',
-								name: 'attachments',
-								type: 'fixedCollection',
-								default: { attachments: [] },
-								typeOptions: {
-									multipleValues: true,
-								},
-								options: [
-									{
-										name: 'attachments',
-										displayName: 'Attachment',
-										values: [
-											{
-												displayName: 'Binary Property',
-												name: 'binaryPropertyName',
-												type: 'string',
-												default: 'data',
-												placeholder: 'data',
-												description: 'Name of the binary property which contains the file data',
-											},
-											{
-												displayName: 'Content ID',
-												name: 'content_id',
-												type: 'string',
-												default: '',
-												placeholder: 'image-1',
-												description: 'Content ID for embedding inline attachments via cid:',
-											},
-											{
-												displayName: 'Content Type',
-												name: 'content_type',
-												type: 'string',
-												default: '',
-												placeholder: 'application/pdf',
-												description: 'Content type for the attachment',
-											},
-											{
-												displayName: 'File Name',
-												name: 'filename',
-												type: 'string',
-												default: '',
-												placeholder: 'document.pdf',
-												description: 'Name for the attached file',
-											},
-										],
-									},
-								],
-								description: 'Attachments for this email (binary data only)',
-							},
-							{
-								displayName: 'BCC',
-								name: 'bcc',
-								type: 'string',
-								default: '',
-								description: 'BCC recipient email addresses (comma-separated)',
-							},
-							{
-								displayName: 'CC',
-								name: 'cc',
-								type: 'string',
-								default: '',
-								description: 'CC recipient email addresses (comma-separated)',
-							},
-							{
-								displayName: 'Headers',
-								name: 'headers',
-								type: 'fixedCollection',
-								default: { headers: [] },
-								typeOptions: {
-									multipleValues: true,
-								},
-								options: [
-									{
-										name: 'headers',
-										displayName: 'Header',
-										values: [
-											{
-												displayName: 'Name',
-												name: 'name',
-												type: 'string',
-												required: true,
-												default: '',
-											},
-											{
-												displayName: 'Value',
-												name: 'value',
-												type: 'string',
-												default: '',
-											},
-										],
-									},
-								],
-								description: 'Custom headers to add to the email',
-							},
-							{
-								displayName: 'Reply To',
-								name: 'reply_to',
-								type: 'string',
-								default: '',
-								description: 'Reply-to email address. For multiple addresses, use comma-separated values.',
-							},
-							{
-								displayName: 'Tags',
-								name: 'tags',
-								type: 'fixedCollection',
-								default: { tags: [] },
-								typeOptions: {
-									multipleValues: true,
-								},
-								options: [
-									{
-										name: 'tags',
-										displayName: 'Tag',
-										values: [
-											{
-												displayName: 'Name',
-												name: 'name',
-												type: 'string',
-												required: true,
-												default: '',
-											},
-											{
-												displayName: 'Value',
-												name: 'value',
-												type: 'string',
-												required: true,
-												default: '',
-											},
-										],
-									},
-								],
-								description: 'Tags to attach to the email',
-							},
-							{
-								displayName: 'Topic ID',
-								name: 'topic_id',
-								type: 'string',
-								default: '',
-								description: 'Topic ID to scope the email to',
-							},
-						],
-					},
-				],
+			],
 			},
 		],
 	},

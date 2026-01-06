@@ -63,7 +63,7 @@ export const contactPropertyFields: INodeProperties[] = [
 				operation: ['create'],
 			},
 		},
-		description: 'Key for the contact property (letters, numbers, underscores).',
+		description: 'Key for the contact property (letters, numbers, underscores)',
 	},
 	{
 		displayName: 'Type',
@@ -81,7 +81,7 @@ export const contactPropertyFields: INodeProperties[] = [
 			{ name: 'String', value: 'string' },
 			{ name: 'Number', value: 'number' },
 		],
-		description: 'Data type for the contact property.',
+		description: 'Data type for the contact property',
 	},
 	{
 		displayName: 'Fallback Value',
@@ -95,7 +95,7 @@ export const contactPropertyFields: INodeProperties[] = [
 				operation: ['create'],
 			},
 		},
-		description: 'Default value when the property is not set on a contact.',
+		description: 'Default value when the property is not set on a contact',
 	},
 	{
 		displayName: 'Contact Property ID',
@@ -110,7 +110,7 @@ export const contactPropertyFields: INodeProperties[] = [
 				operation: ['get', 'update', 'delete'],
 			},
 		},
-		description: 'The ID of the contact property.',
+		description: 'The ID of the contact property',
 	},
 	{
 		displayName: 'Update Fields',
@@ -131,7 +131,7 @@ export const contactPropertyFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				placeholder: 'Acme Corp',
-				description: 'Default value when the property is not set on a contact.',
+				description: 'Default value when the property is not set on a contact',
 			},
 		],
 	},

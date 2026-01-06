@@ -88,11 +88,6 @@ export class Resend implements INodeType {
 						description: 'Manage contact properties',
 					},
 					{
-						name: 'Webhook',
-						value: 'webhooks',
-						description: 'Manage webhooks',
-					},
-					{
 						name: 'Domain',
 						value: 'domains',
 						description: 'Manage email domains',
@@ -116,6 +111,11 @@ export class Resend implements INodeType {
 						name: 'Topic',
 						value: 'topics',
 						description: 'Manage subscription topics',
+					},
+					{
+						name: 'Webhook',
+						value: 'webhooks',
+						description: 'Manage webhooks',
 					},
 				],
 				default: 'email',
@@ -595,7 +595,7 @@ export class Resend implements INodeType {
 							html: templateHtml,
 						};
 
-						const variables = parseTemplateVariables(this, templateVariables, 'fallbackValue', i);
+						const variables = parseTemplateVariables(this, templateVariables, 'fallback_value', i);
 						if (variables?.length) {
 							requestBody.variables = variables;
 						}
@@ -660,7 +660,7 @@ export class Resend implements INodeType {
 							requestBody.text = updateFields.text;
 						}
 
-						const variables = parseTemplateVariables(this, templateVariables, 'fallbackValue', i);
+						const variables = parseTemplateVariables(this, templateVariables, 'fallback_value', i);
 						if (variables?.length) {
 							requestBody.variables = variables;
 						}
