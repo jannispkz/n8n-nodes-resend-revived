@@ -25,7 +25,7 @@
     "url": "https://github.com/jannispkz/n8n-nodes-resend-complete.git"
   },
   "engines": {
-    "node": ">=20.15"
+    "node": ">=24.13.0"
   },
   "main": "index.js",
   "scripts": {
